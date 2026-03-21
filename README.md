@@ -114,7 +114,22 @@ The channel dimension is added to support PyTorch 3D convolutional models.
 ---
 
 ### Final Datasets
+## Dataset
 
+### Dataset Statistics for T1w
+- Number of subjects
+- Number of scans
+- CDR distribution
+- Age distribution
+- Sex distribution
+
+### Dataset Statistics for T2w
+- Number of subjects
+- Number of scans
+- CDR distribution
+- Age distribution
+- Sex distribution
+  
 ---
 
 ### Dataset Splits
