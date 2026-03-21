@@ -21,36 +21,32 @@ The core idea is to learn a latent representation of brain structure and simulat
 ## Dataset
 
 **Source:** OASIS-3 dataset
+> OASIS-3 is a retrospective dataset of 1378 participants collected over 30 years, including cognitively normal individuals and patients at various stages of cognitive decline.
 
-**MRI Modalities used:**
+**MRI Modalities Used:**
 
 * T1-weighted MRI (T1w)
 * T2-weighted MRI (T2w)
 
-**Additional data:**
+**Additional Data Used:**
 
-* Clinical scores (CDRSUM)
+* Clinical Dementia Rating—Sum of Boxes (CDR-SB) Scores
 * Demographics (age, sex)
+  
+### Age and Clinical Label Alignment
 
-**Cohort description:**
-
-> OASIS-3 is a retrospective dataset of 1378 participants collected over 30 years, including cognitively normal individuals and patients at various stages of cognitive decline.
+Participant age at each MRI session was calculated by adding the participant's age at study entry and the number of days elapsed from study entry to the MRI session. Because CDR assessments were performed throughout the study, the CDR-SB score used for each MRI was selected as the closest available assessment to the MRI session date. This ensures that the clinical label is as temporally aligned as possible with the imaging data, even if the MRI and CDR assessment did not occur on the same day.
 
 ### Inclusion Criteria
 
-* [TODO]
+* 3 Tesla (3T) field strength MRI T1w and T2w
+* Isotropic voxel sizes
 
 ### Exclusion Criteria
 
 * MRIs with incorrect voxel spacing
-* 1.5 Tesla
-* [TODO: additional exclusions]
-
-### 🔹 Dataset Splits
-
-* **Training set:** [TODO]
-* **Validation set:** [TODO]
-* **Test set:** [TODO]
+* 1.5 Tesla (1.5T) field strength MRI
+* Raw NIfTI files with anisotropic voxels, since Synthstrip frequently fails even on resized volumes
 
 ---
 
@@ -113,8 +109,20 @@ The channel dimension is added to support PyTorch 3D convolutional models.
 
 - Failed preprocessing steps (e.g., skull stripping errors) were logged and excluded  
 - Visual inspection was performed on sample scans to verify anatomical integrity  
-- Central slices (sagittal, coronal, axial) were used for manual sanity checks  
+- Central slices (sagittal, coronal, axial) were used for manual sanity checks
+  
+---
 
+### Final Datasets
+
+---
+
+### Dataset Splits
+
+* **Training set:** [TODO]
+* **Validation set:** [TODO]
+* **Test set:** [TODO]
+  
 ---
 
 ## Model Architecture
