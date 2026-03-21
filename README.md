@@ -170,7 +170,7 @@ The channel dimension is added to support PyTorch 3D convolutional models.
 
 ---
 
-## 📜 References
+## References
 
 * OASIS-3 dataset!!!!
 * SynthStrip (FreeSurfer)!!!!
