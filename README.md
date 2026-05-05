@@ -1,4 +1,4 @@
-# 3D Stochastic VAE with Demographic Conditioning and Severity-Aware Representation Learning for Cognitive Decline Progression Modeling from Structural MRI
+# Severity-Aware Probabilistic Representation Learning for Dementia Staging from Volumetric MRI: A 3D VAE with Demographic Conditioning and Bayesian Skip Connections
 
 ---
 
