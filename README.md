@@ -26,7 +26,7 @@ The model jointly optimizes:
 * MRI reconstruction fidelity
 * KL divergence regularization
 * CDR-SB regression
-* Patch-level representation consistency
+* Contrastive loss
 
 ### Bayesian skip connection framework
 
