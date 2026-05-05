@@ -16,6 +16,192 @@ Unlike standard VAEs, which focus solely on reconstruction, the proposed framewo
 The model is designed to capture both anatomical variation and disease progression within a shared latent space, incorporating clinical supervision through CDR-SB regression.
 
 ---
+## Reproducibility Guide
+
+This section provides all requirements and setup instructions needed to reproduce the results in this project from scratch. No prior knowledge of the codebase is assumed.
+
+---
+
+### System Requirements
+
+| Component | Requirement |
+|-----------|-------------|
+| Operating System | Linux (Ubuntu 20.04+ recommended) |
+| Python | 3.9 or higher |
+| GPU | NVIDIA GPU with CUDA support (≥16GB VRAM recommended for 3D MRI volumes) |
+| RAM | ≥32GB recommended |
+| Storage | ≥200GB free disk space (for raw and preprocessed MRI data) |
+| CUDA | 11.7 or higher |
+
+---
+
+### External Tool: FreeSurfer + SynthStrip
+
+SynthStrip is used for skull stripping and is distributed as part of FreeSurfer. FreeSurfer must be installed separately (on the operating system) before running any preprocessing.
+
+#### Installation
+
+1. Download FreeSurfer 8.1.0 from the official site:
+   https://surfer.nmr.mgh.harvard.edu/fswiki/DownloadAndInstall
+
+2. Follow the platform-specific installation instructions on that page.
+
+3. After installation, verify SynthStrip is available:
+
+```bash
+export FREESURFER_HOME=/usr/local/freesurfer/8.1.0
+source $FREESURFER_HOME/SetUpFreeSurfer.sh
+$FREESURFER_HOME/bin/mri_synthstrip --help
+```
+
+If the help output prints without error, SynthStrip is correctly installed.
+
+> **Note:** The `FREESURFER_HOME` path in `run_synthstrip()` is hardcoded to `/usr/local/freesurfer/8.1.0`. If your installation path differs, update this constant at the top of the preprocessing script before running.
+
+---
+
+### Python Dependencies
+
+Install all required Python packages using pip:
+
+
+#### Full dependency list with used versions
+
+| Package | Version |
+|---------|---------|
+| torch | 2.0.0+ |
+| torchvision | 0.15.0+ |
+| nibabel | 5.1.0 |
+| SimpleITK | 2.3.0 |
+| scipy | 1.11.0 |
+| numpy | 1.24.0 |
+| pandas | 2.0.0 |
+| matplotlib | 3.7.0 |
+| tqdm | 4.65.0 |
+| scikit-learn | 1.3.0 |
+
+
+---
+
+### Dataset Access
+
+The OASIS-3 dataset is publicly available but requires registration and a data use agreement.
+
+1. Register at: https://www.oasis-brains.org/
+2. Request access to OASIS-3.
+3. Once approved, download:
+   - T1-weighted MRI scans (NIfTI format, `.nii.gz`)
+   - T2-weighted MRI scans (NIfTI format, `.nii.gz`)
+   - Clinical data including CDR-SB scores and demographic information (age, sex)
+
+---
+
+### Input CSV Format
+
+The preprocessing and training scripts expect a CSV file with the following columns. Both T1w and T2w tables must follow this structure. Part of this table is built during trhe script process:
+
+| Column | Description |
+|--------|-------------|
+| `OASIS3_id` | Unique participant identifier |
+| `fixed_path` | Absolute path to the preprocessed `.npy` MRI file |
+| `age_at_session` | Participant age at time of MRI session (float) |
+| `sex` | Binary sex encoding: `0` = male, `1` = female |
+| `CDRSUM` | Clinical Dementia Rating Sum of Boxes score (float) |
+
+> Age at session should be computed by adding the participant's age at study entry to the elapsed time (in years) from study entry to the MRI session date. CDR-SB scores should be matched to the closest available assessment date for each MRI session.
+
+---
+
+### Reproducing Results Step by Step
+
+Follow these steps in order. Each step depends on the previous one being completed.
+
+#### Step 1: Skull Stripping
+
+```python
+failed = skullstrip_paths(list_of_nifti_paths, output_dir="skull_stripped/")
+```
+
+* Input: list of paths to raw `.nii.gz` files
+* Output: skull-stripped files saved as `*_brain.nii.gz` in `output_dir`
+* Any failed paths are returned in `failed` and should be excluded
+
+#### Step 2: Preprocessing
+
+```python
+failed = preprocess_mri_paths(list_of_stripped_paths, output_dir="preprocessed/")
+```
+
+* Input: list of skull-stripped `.nii.gz` paths
+* Output: preprocessed volumes saved as `.npy` files in `output_dir`
+* Shape of each file: `(1, 160, 192, 160)`, dtype `float32`
+
+#### Step 3: Quality Control
+
+```python
+results = find_bad_files(list_of_npy_paths)
+bad_files = results["bad_all"]
+df_clean = permanently_filter_dataset("your_table.csv", bad_files, path_col="fixed_path")
+```
+
+* Removes corrupted, misaligned, or anomalous scans from the CSV
+* The CSV is updated in place; save a backup copy beforehand if needed
+
+#### Step 4: Update CSV Paths
+
+After preprocessing, ensure the `fixed_path` column in your CSV points to the `.npy` files in `preprocessed/`, not the original NIfTI files.
+
+#### Step 5: Train the Models
+
+Update the two `pd.read_csv('YOUR_PATH')` calls in the data loading section with the paths to your cleaned T1w and T2w CSV files, then run:
+
+```python
+losses_t1w = train(model_t1w, train_loader_t1, epochs=50, lr=1e-4)
+losses_t2w = train(model_t2w, train_loader_t2, epochs=50, lr=1e-4)
+```
+
+Models are saved automatically after training:
+
+* `model_t1w.pt`
+* `model_t2w.pt`
+
+#### Step 6: Evaluate
+
+```python
+results_t1w = full_evaluation(model_t1w, test_loader_t1)
+results_t2w = full_evaluation(model_t2w, test_loader_t2)
+```
+
+#### Step 7 (Optional): Visualize Reconstructions
+
+```python
+visualize_reconstruction(model_t1w, test_loader_t1, num_samples=3)
+```
+
+---
+
+### Hyperparameters
+
+All key hyperparameters used in this project are listed below:
+
+| Parameter | Value |
+|-----------|-------|
+| Batch size | 5 |
+| Learning rate | 1e-4 |
+| Epochs | 50 |
+| Latent dimension | 64 |
+| Optimizer | Adam |
+| Gradient clip norm | 5.0 |
+| KL weight (β) | 1.0 |
+| Contrastive weight (γ) | 0.2 |
+| Reconstruction weight | 2.5 |
+| Contrastive temperature (τ) | 0.1 |
+| Target voxel spacing | (1.0, 1.0, 1.0) mm |
+| Target volume shape | (160, 192, 160) |
+| Intensity clip percentiles | (0.5, 99.5) |
+
+
+---
 
 ## Key Contributions
 
